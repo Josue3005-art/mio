@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Trading Bot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2"></i>Trading Bot Admin
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    <i class="fas fa-arrow-left me-1"></i>Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Encabezado -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-shield-alt text-warning me-2"></i>
+                        Panel de Administración
+                    </h1>
+                    <span class="badge bg-warning text-dark px-3 py-2">
+                        <i class="fas fa-crown me-1"></i>SUPER ADMIN
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas del Sistema -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <h4 class="mb-0">{{ stats.total_users or 0 }}</h4>
+                        <small>Usuarios Totales</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-crown fa-2x mb-2"></i>
+                        <h4 class="mb-0">{{ stats.admin_users or 0 }}</h4>
+                        <small>Administradores</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                        <h4 class="mb-0">${{ "%.2f"|format(stats.monthly_revenue or 0) }}</h4>
+                        <small>Ingresos Mensuales</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-link fa-2x mb-2"></i>
+                        <h4 class="mb-0">{{ stats.active_referral_codes or 0 }}</h4>
+                        <small>Códigos Activos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gestión de Usuarios -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users-cog me-2"></i>Gestión de Usuarios
+                        </h5>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-primary" onclick="showCreateLicenseModal()">
+                                <i class="fas fa-plus me-1"></i>Crear Licencia
+                            </button>
+                            <button class="btn btn-success" onclick="optimizeSystem()">
+                                <i class="fas fa-rocket me-1"></i>Optimizar Sistema
+                            </button>
+                            <button class="btn btn-warning" onclick="clearCache()">
+                                <i class="fas fa-broom me-1"></i>Limpiar Cache
+                            </button>
+                            <button class="btn btn-info" onclick="refreshData()">
+                                <i class="fas fa-sync me-1"></i>Actualizar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Email</th>
+                                        <th>Nombre</th>
+                                        <th>Plan</th>
+                                        <th>Rol</th>
+                                        <th>Fecha Registro</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td><code>{{ user.id }}</code></td>
+                                        <td>{{ user.email or 'N/A' }}</td>
+                                        <td>{{ user.name or 'Sin nombre' }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'warning' if user.plan == 'PREMIUM' else 'info' if user.plan == 'BASIC' else 'secondary' }}">
+                                                {{ user.plan }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if user.is_admin %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-crown me-1"></i>{{ user.role }}
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">{{ user.role }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user.created_at }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                {% if not user.is_admin %}
+                                                <button class="btn btn-outline-warning" onclick="makeAdmin('{{ user.id }}')">
+                                                    <i class="fas fa-user-shield"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button class="btn btn-outline-info" onclick="createLicense('{{ user.id }}')">
+                                                    <i class="fas fa-certificate"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" onclick="generateCode('{{ user.id }}')">
+                                                    <i class="fas fa-link"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if not users %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            No hay usuarios registrados
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear licencia -->
+    <div class="modal fade" id="licenseModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crear Licencia</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="licenseForm">
+                        <div class="mb-3">
+                            <label class="form-label">ID de Usuario</label>
+                            <input type="text" class="form-control" id="licenseUserId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Plan</label>
+                            <select class="form-select" id="licensePlanType">
+                                <option value="BASIC">BASIC ($29.99)</option>
+                                <option value="PREMIUM">PREMIUM ($99.99)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Duración (meses)</label>
+                            <input type="number" class="form-control" id="licenseDuration" value="1" min="1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="submitLicense()">Crear Licencia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/admin-functions.js') }}"></script>
+    <script>
+        function showCreateLicenseModal() {
+            new bootstrap.Modal(document.getElementById('licenseModal')).show();
+        }
+    </script>
+</body>
+</html>

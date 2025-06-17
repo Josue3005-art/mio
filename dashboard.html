@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Analytics - Crypto Trading Bot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dark-theme-fixes.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2"></i>Crypto Trading Bot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-chart-line me-1"></i>Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Performance Overview -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-primary fw-bold text-xs mb-1">Total Balance</div>
+                                <div class="text-light fw-bold h5 mb-0">${{ "%.2f"|format(total_balance) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-wallet fa-2x text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-success fw-bold text-xs mb-1">Total Profit</div>
+                                <div class="text-light fw-bold h5 mb-0">${{ "%.2f"|format(total_profit) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-chart-line fa-2x text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-info">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-info fw-bold text-xs mb-1">Win Rate</div>
+                                <div class="text-light fw-bold h5 mb-0">{{ "%.1f"|format(win_rate) }}%</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-target fa-2x text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-warning fw-bold text-xs mb-1">Total Trades</div>
+                                <div class="text-light fw-bold h5 mb-0">{{ total_trades }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exchange-alt fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Balance Chart -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Daily Balance Progression</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="balanceChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit Distribution -->
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Strategy Performance</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="strategyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Recent Trades Analysis -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Trade History (Last 100 Trades)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Time</th>
+                                        <th>Symbol</th>
+                                        <th>Side</th>
+                                        <th>Amount</th>
+                                        <th>Price</th>
+                                        <th>P/L</th>
+                                        <th>Fee</th>
+                                        <th>Strategy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for trade in all_trades %}
+                                    <tr>
+                                        <td>{{ trade.executed_at.strftime('%m/%d %H:%M') }}</td>
+                                        <td><code>{{ trade.symbol }}</code></td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if trade.side == 'BUY' else 'danger' }}">
+                                                {{ trade.side }}
+                                            </span>
+                                        </td>
+                                        <td class="text-light">${{ "%.2f"|format(trade.total_value) }}</td>
+                                        <td class="text-light">{{ "%.6f"|format(trade.price) }}</td>
+                                        <td class="text-{{ 'success' if trade.profit_loss and trade.profit_loss > 0 else 'danger' if trade.profit_loss else 'muted' }}">
+                                            {% if trade.profit_loss %}
+                                                ${{ "%.2f"|format(trade.profit_loss) }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-light">${{ "%.3f"|format(trade.fee) }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ trade.strategy }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Statistics -->
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Trading Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Trades:</span>
+                                <strong class="text-light">{{ total_trades }}</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Win Rate:</span>
+                                <strong class="text-{{ 'success' if win_rate >= 50 else 'warning' }}">{{ "%.1f"|format(win_rate) }}%</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Profit:</span>
+                                <strong class="text-{{ 'success' if total_profit >= 0 else 'danger' }}">${{ "%.2f"|format(total_profit) }}</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Fees:</span>
+                                <strong class="text-warning">${{ "%.2f"|format(total_fees) }}</strong>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Net Profit:</span>
+                                <strong class="text-{{ 'success' if (total_profit - total_fees) >= 0 else 'danger' }}">${{ "%.2f"|format(total_profit - total_fees) }}</strong>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h6 class="fw-bold mb-3">Balance Breakdown</h6>
+                        {% for balance in balances %}
+                            {% if balance.total_balance > 0 %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <strong class="text-light">{{ balance.asset }}</strong>
+                                    <div class="text-muted small">{{ "%.6f"|format(balance.total_balance) }}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-light">${{ "%.2f"|format(balance.usd_value) }}</div>
+                                    <div class="text-muted small">
+                                        Free: {{ "%.6f"|format(balance.free_balance) }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Performance Chart -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Daily Performance Overview</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailyPerformanceChart" width="400" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Chart data from server
+        const dailyStats = {{ daily_stats | tojson | safe }};
+        const allTrades = {{ all_trades | length }};
+        
+        // Balance Chart
+        const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+        const balanceChart = new Chart(balanceCtx, {
+            type: 'line',
+            data: {
+                labels: dailyStats.map(stat => stat.date),
+                datasets: [{
+                    label: 'Balance ($)',
+                    data: dailyStats.map(stat => stat.ending_balance),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Strategy Performance Chart
+        const strategyCtx = document.getElementById('strategyChart').getContext('2d');
+        const strategyData = {
+            arbitrage: {{ all_trades | selectattr('strategy', 'equalto', 'arbitrage') | list | length }},
+            scalping: {{ all_trades | selectattr('strategy', 'equalto', 'scalping') | list | length }},
+            grid: {{ all_trades | selectattr('strategy', 'equalto', 'grid') | list | length }}
+        };
+        
+        const strategyChart = new Chart(strategyCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Arbitrage', 'Scalping', 'Grid Trading'],
+                datasets: [{
+                    data: [strategyData.arbitrage, strategyData.scalping, strategyData.grid],
+                    backgroundColor: ['#0d6efd', '#198754', '#ffc107']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Daily Performance Chart
+        const dailyPerfCtx = document.getElementById('dailyPerformanceChart').getContext('2d');
+        const dailyPerfChart = new Chart(dailyPerfCtx, {
+            type: 'bar',
+            data: {
+                labels: dailyStats.map(stat => stat.date),
+                datasets: [
+                    {
+                        label: 'Daily Profit ($)',
+                        data: dailyStats.map(stat => stat.total_profit),
+                        backgroundColor: dailyStats.map(stat => stat.total_profit >= 0 ? '#198754' : '#dc3545'),
+                        borderColor: dailyStats.map(stat => stat.total_profit >= 0 ? '#198754' : '#dc3545'),
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Trades Count',
+                        data: dailyStats.map(stat => stat.total_trades),
+                        type: 'line',
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        yAxisID: 'y1',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' trades';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

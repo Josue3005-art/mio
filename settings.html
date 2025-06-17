@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Crypto Trading Bot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dark-theme-fixes.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2"></i>Crypto Trading Bot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-chart-line me-1"></i>Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Alert Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="m-0 fw-bold">
+                            <i class="fas fa-cog me-2"></i>Trading Bot Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('update_settings') }}">
+                            <!-- Trading Mode Selection -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card bg-dark border-warning">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-warning">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>Modo de Trading
+                                            </h6>
+                                            <div class="btn-group w-100" role="group" aria-label="Trading mode">
+                                                <input type="radio" class="btn-check" name="trading_mode" id="demo_mode" value="demo" checked>
+                                                <label class="btn btn-outline-info" for="demo_mode">
+                                                    <i class="fas fa-vial me-2"></i>DEMO (Simulación)
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="trading_mode" id="real_mode" value="real">
+                                                <label class="btn btn-outline-danger" for="real_mode">
+                                                    <i class="fas fa-dollar-sign me-2"></i>REAL (Dinero Real)
+                                                </label>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div id="demo_warning" class="alert alert-info mb-0">
+                                                    <strong>Modo DEMO:</strong> Opera con dinero virtual ($30 inicial). Perfecto para probar estrategias sin riesgo.
+                                                </div>
+                                                <div id="real_warning" class="alert alert-danger mb-0" style="display: none;">
+                                                    <strong>⚠️ MODO REAL:</strong> Opera con dinero real de tus exchanges. Requiere configurar API keys válidas.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Exchange API Configuration -->
+                            <div class="row mb-4" id="api_config_section">
+                                <div class="col-12">
+                                    <div class="card bg-dark border-warning">
+                                        <div class="card-header bg-transparent border-bottom border-warning">
+                                            <h6 class="card-title text-warning mb-0">
+                                                <i class="fas fa-key me-2"></i>Configuración de Exchange APIs
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <!-- Status Indicators -->
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fab fa-bitcoin fa-2x text-warning me-3"></i>
+                                                        <div>
+                                                            <h6 class="mb-1">Binance</h6>
+                                                            <span id="binance_status" class="badge bg-secondary">No configurado</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-coins fa-2x text-info me-3"></i>
+                                                        <div>
+                                                            <h6 class="mb-1">KuCoin</h6>
+                                                            <span id="kucoin_status" class="badge bg-secondary">No configurado</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Binance Configuration -->
+                                            <div class="mb-4">
+                                                <h6 class="text-warning mb-3">Binance API</h6>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="binance_api_key" class="form-label">API Key</label>
+                                                        <input type="password" class="form-control" id="binance_api_key" placeholder="Tu Binance API Key">
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="binance_api_secret" class="form-label">API Secret</label>
+                                                        <input type="password" class="form-control" id="binance_api_secret" placeholder="Tu Binance API Secret">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- KuCoin Configuration -->
+                                            <div class="mb-4">
+                                                <h6 class="text-warning mb-3">KuCoin API</h6>
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="kucoin_api_key" class="form-label">API Key</label>
+                                                        <input type="password" class="form-control" id="kucoin_api_key" placeholder="Tu KuCoin API Key">
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="kucoin_api_secret" class="form-label">API Secret</label>
+                                                        <input type="password" class="form-control" id="kucoin_api_secret" placeholder="Tu KuCoin API Secret">
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label for="kucoin_passphrase" class="form-label">Passphrase</label>
+                                                        <input type="password" class="form-control" id="kucoin_passphrase" placeholder="Tu KuCoin Passphrase">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-warning" onclick="saveApiKeys()">
+                                                    <i class="fas fa-save me-2"></i>Guardar API Keys
+                                                </button>
+                                                <button type="button" class="btn btn-outline-info" onclick="testApiConnections()">
+                                                    <i class="fas fa-plug me-2"></i>Probar Conexión
+                                                </button>
+                                            </div>
+                                            
+                                            <div class="alert alert-warning mt-3">
+                                                <strong>Importante:</strong> Las API keys se almacenan de forma segura y solo se usan para realizar trades. 
+                                                Asegúrate de crear keys con permisos de trading pero SIN permisos de retiro.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trading Status -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card bg-dark border-primary">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-primary">
+                                                <i class="fas fa-power-off me-2"></i>Estado del Trading
+                                            </h6>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="trading_enabled" name="trading_enabled">
+                                                <label class="form-check-label" for="trading_enabled">
+                                                    Activar Trading Automático
+                                                </label>
+                                            </div>
+                                            <small class="text-muted">
+                                                Cuando está activado, el bot ejecutará trades automáticamente según las oportunidades detectadas.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Risk Management -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-warning mb-3">
+                                        <i class="fas fa-shield-alt me-2"></i>Risk Management
+                                    </h6>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="min_trade_amount" class="form-label">Minimum Trade Amount ($)</label>
+                                    <input type="number" class="form-control" id="min_trade_amount" name="min_trade_amount" 
+                                           value="{{ config.get('min_trade_amount', '5.0') }}" min="1" max="50" step="0.1">
+                                    <div class="form-text">Minimum amount per individual trade</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="max_trade_amount" class="form-label">Maximum Trade Amount ($)</label>
+                                    <input type="number" class="form-control" id="max_trade_amount" name="max_trade_amount" 
+                                           value="{{ config.get('max_trade_amount', '15.0') }}" min="5" max="100" step="0.1">
+                                    <div class="form-text">Maximum amount per individual trade</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="stop_loss_percentage" class="form-label">Stop Loss (%)</label>
+                                    <input type="number" class="form-control" id="stop_loss_percentage" name="stop_loss_percentage" 
+                                           value="{{ config.get('stop_loss_percentage', '2.0') }}" min="0.5" max="10" step="0.1">
+                                    <div class="form-text">Automatic stop loss trigger percentage</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="max_positions" class="form-label">Maximum Open Positions</label>
+                                    <input type="number" class="form-control" id="max_positions" name="max_positions" 
+                                           value="{{ config.get('max_positions', '3') }}" min="1" max="10">
+                                    <div class="form-text">Maximum number of simultaneous open positions</div>
+                                </div>
+                            </div>
+
+                            <!-- Trading Strategy -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-info mb-3">
+                                        <i class="fas fa-chart-line me-2"></i>Trading Strategy
+                                    </h6>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="target_spread" class="form-label">Minimum Spread (%)</label>
+                                    <input type="number" class="form-control" id="target_spread" name="target_spread" 
+                                           value="{{ config.get('target_spread', '0.5') }}" min="0.1" max="5.0" step="0.1">
+                                    <div class="form-text">Minimum spread percentage to consider for arbitrage</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="reinvestment_rate" class="form-label">Reinvestment Rate (%)</label>
+                                    <input type="number" class="form-control" id="reinvestment_rate" name="reinvestment_rate" 
+                                           value="{{ config.get('reinvestment_rate', '80.0') }}" min="0" max="100" step="5">
+                                    <div class="form-text">Percentage of profits to reinvest automatically</div>
+                                </div>
+                            </div>
+
+                            <!-- Strategy Information -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading">
+                                            <i class="fas fa-info-circle me-2"></i>Trading Strategy Information
+                                        </h6>
+                                        <p class="mb-2"><strong>Micro-Arbitrage:</strong> Exploits small price differences between bid/ask spreads</p>
+                                        <p class="mb-2"><strong>Scalping:</strong> Quick trades on short-term price movements</p>
+                                        <p class="mb-2"><strong>Grid Trading:</strong> Places buy/sell orders at predetermined intervals</p>
+                                        <p class="mb-0"><strong>Risk Management:</strong> Automatic stop-losses and position sizing to protect capital</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Settings
+                                    </button>
+                                    <button type="button" class="btn btn-secondary ms-2" onclick="resetToDefaults()">
+                                        <i class="fas fa-undo me-2"></i>Reset to Defaults
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel with Status and Help -->
+            <div class="col-lg-4">
+                <!-- System Status -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">
+                            <i class="fas fa-server me-2"></i>System Status
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Trading Engine:</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-circle me-1"></i>Running
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Binance API:</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Connected
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>WebSocket:</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-wifi me-1"></i>Active
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Telegram Bot:</span>
+                            <span class="badge bg-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Optional
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">
+                            <i class="fas fa-tachometer-alt me-2"></i>Quick Stats
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Active Since:</span>
+                            <span class="text-muted">Session Start</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Target Symbols:</span>
+                            <span class="badge bg-info">20 Pairs</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Scan Frequency:</span>
+                            <span class="text-muted">1 second</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Daily Goal:</span>
+                            <span class="text-success fw-bold">$100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help & Tips -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">
+                            <i class="fas fa-lightbulb me-2"></i>Tips & Recommendations
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning alert-sm">
+                            <strong>Conservative Approach:</strong> Start with smaller trade amounts ($5-$10) to minimize risk while learning.
+                        </div>
+                        <div class="alert alert-info alert-sm">
+                            <strong>Spread Targeting:</strong> Focus on spreads >0.5% for better profit margins after fees.
+                        </div>
+                        <div class="alert alert-success alert-sm">
+                            <strong>Reinvestment:</strong> 80% reinvestment rate allows for compound growth while preserving some profits.
+                        </div>
+                        <div class="alert alert-danger alert-sm">
+                            <strong>Risk Warning:</strong> Cryptocurrency trading involves significant risk. Never invest more than you can afford to lose.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentTradingMode();
+            setupTradingModeListeners();
+            // Always show API config section for easy access
+            toggleApiConfigSection(true);
+        });
+
+        // Load current trading mode
+        function loadCurrentTradingMode() {
+            fetch('/api/get_trading_config')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const mode = data.mode;
+                        document.getElementById(mode + '_mode').checked = true;
+                        toggleApiConfigSection(mode === 'real');
+                        updateModeWarnings(mode);
+                        
+                        // Update exchange status indicators
+                        updateExchangeStatus(data.exchanges_configured);
+                    }
+                });
+        }
+
+        // Update exchange status indicators
+        function updateExchangeStatus(exchanges) {
+            const binanceStatus = document.getElementById('binance_status');
+            const kucoinStatus = document.getElementById('kucoin_status');
+            
+            if (exchanges.binance) {
+                binanceStatus.textContent = 'Configurado';
+                binanceStatus.className = 'badge bg-success';
+            } else {
+                binanceStatus.textContent = 'No configurado';
+                binanceStatus.className = 'badge bg-secondary';
+            }
+            
+            if (exchanges.kucoin) {
+                kucoinStatus.textContent = 'Configurado';
+                kucoinStatus.className = 'badge bg-success';
+            } else {
+                kucoinStatus.textContent = 'No configurado';
+                kucoinStatus.className = 'badge bg-secondary';
+            }
+        }
+
+        // Setup event listeners for trading mode
+        function setupTradingModeListeners() {
+            document.getElementById('demo_mode').addEventListener('change', function() {
+                if (this.checked) {
+                    changeTradingMode('demo');
+                }
+            });
+
+            document.getElementById('real_mode').addEventListener('change', function() {
+                if (this.checked) {
+                    if (confirm('⚠️ ¿Estás seguro de cambiar a modo REAL? Esto operará con dinero real de tus exchanges.')) {
+                        changeTradingMode('real');
+                    } else {
+                        document.getElementById('demo_mode').checked = true;
+                    }
+                }
+            });
+        }
+
+        // Change trading mode
+        function changeTradingMode(mode) {
+            fetch('/api/set_trading_mode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ mode: mode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    toggleApiConfigSection(mode === 'real');
+                    updateModeWarnings(mode);
+                    showAlert('success', data.message);
+                } else {
+                    showAlert('danger', data.error);
+                    // Reset to demo if error
+                    document.getElementById('demo_mode').checked = true;
+                    toggleApiConfigSection(false);
+                    updateModeWarnings('demo');
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'Error cambiando modo de trading');
+                console.error('Error:', error);
+            });
+        }
+
+        // Toggle API configuration section
+        function toggleApiConfigSection(show) {
+            const section = document.getElementById('api_config_section');
+            section.style.display = show ? 'block' : 'none';
+        }
+
+        // Update mode warnings
+        function updateModeWarnings(mode) {
+            const demoWarning = document.getElementById('demo_warning');
+            const realWarning = document.getElementById('real_warning');
+            
+            if (mode === 'real') {
+                demoWarning.style.display = 'none';
+                realWarning.style.display = 'block';
+            } else {
+                demoWarning.style.display = 'block';
+                realWarning.style.display = 'none';
+            }
+        }
+
+        // Save API keys
+        function saveApiKeys() {
+            const exchanges = ['binance', 'kucoin'];
+            let savedCount = 0;
+            
+            exchanges.forEach(exchange => {
+                const apiKey = document.getElementById(exchange + '_api_key').value;
+                const apiSecret = document.getElementById(exchange + '_api_secret').value;
+                const passphrase = exchange === 'kucoin' ? document.getElementById(exchange + '_passphrase').value : '';
+                
+                if (apiKey && apiSecret) {
+                    const data = {
+                        exchange: exchange,
+                        api_key: apiKey,
+                        api_secret: apiSecret
+                    };
+                    
+                    if (passphrase) {
+                        data.passphrase = passphrase;
+                    }
+                    
+                    fetch('/api/configure_api_keys', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            savedCount++;
+                            // Update status immediately
+                            if (exchange === 'binance') {
+                                document.getElementById('binance_status').textContent = 'Configurado';
+                                document.getElementById('binance_status').className = 'badge bg-success';
+                            } else if (exchange === 'kucoin') {
+                                document.getElementById('kucoin_status').textContent = 'Configurado';
+                                document.getElementById('kucoin_status').className = 'badge bg-success';
+                            }
+                            
+                            showAlert('success', `API Keys de ${exchange.toUpperCase()} guardadas correctamente`);
+                            
+                            // Clear the form
+                            document.getElementById(exchange + '_api_key').value = '';
+                            document.getElementById(exchange + '_api_secret').value = '';
+                            if (passphrase) document.getElementById(exchange + '_passphrase').value = '';
+                        } else {
+                            showAlert('danger', result.error);
+                        }
+                    })
+                    .catch(error => {
+                        showAlert('danger', 'Error guardando API keys de ' + exchange);
+                        console.error('Error:', error);
+                    });
+                }
+            });
+            
+            // Check if no APIs were saved
+            setTimeout(() => {
+                if (savedCount === 0) {
+                    showAlert('warning', 'Por favor completa al menos las API keys de un exchange');
+                }
+            }, 100);
+        }
+
+        // Show alert
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.container-fluid');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Test API connections
+        function testApiConnections() {
+            const exchanges = ['binance', 'kucoin'];
+            
+            exchanges.forEach(exchange => {
+                const apiKey = document.getElementById(exchange + '_api_key').value;
+                const apiSecret = document.getElementById(exchange + '_api_secret').value;
+                
+                if (apiKey && apiSecret) {
+                    showAlert('info', `Probando conexión con ${exchange.toUpperCase()}...`);
+                    
+                    fetch('/api/test_exchange_connection', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            exchange: exchange,
+                            api_key: apiKey,
+                            api_secret: apiSecret,
+                            passphrase: exchange === 'kucoin' ? document.getElementById(exchange + '_passphrase').value : ''
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showAlert('success', `✓ Conexión exitosa con ${exchange.toUpperCase()}: ${result.balance || 'API válida'}`);
+                        } else {
+                            showAlert('danger', `✗ Error conectando con ${exchange.toUpperCase()}: ${result.error}`);
+                        }
+                    })
+                    .catch(error => {
+                        showAlert('danger', `Error probando ${exchange.toUpperCase()}: ${error.message}`);
+                    });
+                } else {
+                    showAlert('warning', `Por favor ingresa API Key y Secret para ${exchange.toUpperCase()}`);
+                }
+            });
+        }
+
+        function resetToDefaults() {
+            if (confirm('¿Estás seguro de restablecer todas las configuraciones a valores por defecto?')) {
+                document.getElementById('min_trade_amount').value = '5.0';
+                document.getElementById('max_trade_amount').value = '15.0';
+                document.getElementById('stop_loss_percentage').value = '2.0';
+                document.getElementById('target_spread').value = '0.5';
+                document.getElementById('reinvestment_rate').value = '80.0';
+                document.getElementById('max_positions').value = '3';
+                document.getElementById('trading_enabled').checked = true;
+            }
+        }
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const minAmount = parseFloat(document.getElementById('min_trade_amount').value);
+            const maxAmount = parseFloat(document.getElementById('max_trade_amount').value);
+            
+            if (minAmount >= maxAmount) {
+                e.preventDefault();
+                alert('El monto máximo debe ser mayor que el monto mínimo.');
+                return false;
+            }
+            
+            if (minAmount < 1 || maxAmount > 100) {
+                e.preventDefault();
+                alert('Los montos de trading deben estar entre $1 y $100.');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

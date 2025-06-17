@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error del Servidor - CryptoBot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .error-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .error-icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-icon">⚠️</div>
+            <h1 class="text-light mb-3">Error del Servidor</h1>
+            <p class="text-light mb-4">Ha ocurrido un error interno en el servidor. El equipo técnico ha sido notificado.</p>
+            <a href="/" class="btn btn-primary">Volver al Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

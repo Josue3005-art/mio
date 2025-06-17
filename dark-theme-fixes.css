@@ -1,0 +1,45 @@
+/* Correcciones de visibilidad para tema oscuro */
+/* Asegurar que todos los valores numéricos sean visibles */
+
+/* Valores monetarios y numéricos principales */
+.metric-value,
+.balance-value,
+.trade-value,
+.profit-value {
+    color: var(--bs-light) !important;
+}
+
+/* Corrección global para elementos con text-dark en tema oscuro */
+[data-bs-theme="dark"] .text-dark {
+    color: var(--bs-light) !important;
+}
+
+/* Valores en tablas */
+[data-bs-theme="dark"] table td:not(.text-success):not(.text-danger):not(.text-warning):not(.text-info):not(.text-muted) {
+    color: var(--bs-light);
+}
+
+/* Valores numéricos específicos */
+[data-bs-theme="dark"] .h1,
+[data-bs-theme="dark"] .h2, 
+[data-bs-theme="dark"] .h3,
+[data-bs-theme="dark"] .h4,
+[data-bs-theme="dark"] .h5,
+[data-bs-theme="dark"] .h6 {
+    color: var(--bs-light);
+}
+
+/* Asegurar visibilidad de spans con valores */
+[data-bs-theme="dark"] span:not(.badge):not(.text-success):not(.text-danger):not(.text-warning):not(.text-info):not(.text-muted) {
+    color: var(--bs-light);
+}
+
+/* Valores en cards */
+[data-bs-theme="dark"] .card-body .fw-bold:not(.text-success):not(.text-danger):not(.text-warning):not(.text-info):not(.text-primary):not(.text-secondary) {
+    color: var(--bs-light) !important;
+}
+
+/* Corrección para elementos strong sin clases de color específicas */
+[data-bs-theme="dark"] strong:not(.text-success):not(.text-danger):not(.text-warning):not(.text-info):not(.text-muted) {
+    color: var(--bs-light);
+}

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago Exitoso - Crypto Trading Bot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .success-animation {
+            animation: successPulse 2s ease-in-out infinite;
+        }
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .feature-highlight {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- Success Card -->
+                <div class="card bg-dark border-success">
+                    <div class="card-body text-center p-5">
+                        <div class="success-animation mb-4">
+                            <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+                        </div>
+                        
+                        <h1 class="text-success mb-3">¡Pago Exitoso!</h1>
+                        <p class="lead mb-4">Tu suscripción ha sido activada correctamente.</p>
+                        
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-crown me-2"></i>¡Bienvenido al Plan Premium!</h5>
+                            <p class="mb-0">Ahora tienes acceso completo a todas las funcionalidades de trading automatizado.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Steps -->
+                <div class="card bg-dark mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list-check me-2"></i>Próximos Pasos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="feature-highlight">
+                            <h6><i class="fas fa-key me-2"></i>1. Configura tus APIs</h6>
+                            <p class="mb-0">Ve a Settings y configura tus API keys de Binance y/o KuCoin para activar el trading real.</p>
+                        </div>
+                        
+                        <div class="feature-highlight">
+                            <h6><i class="fas fa-toggle-on me-2"></i>2. Activa el Trading Real</h6>
+                            <p class="mb-0">Cambia del modo DEMO al modo REAL para comenzar a operar con dinero real.</p>
+                        </div>
+                        
+                        <div class="feature-highlight">
+                            <h6><i class="fas fa-chart-line me-2"></i>3. Monitorea tus Ganancias</h6>
+                            <p class="mb-0">Observa el dashboard para ver tus trades y ganancias en tiempo real.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('settings') }}" class="btn btn-success btn-lg me-3">
+                        <i class="fas fa-cog me-2"></i>Configurar APIs
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-home me-2"></i>Ir al Dashboard
+                    </a>
+                </div>
+
+                <!-- Support Section -->
+                <div class="card bg-dark border-info mt-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="text-info mb-1">
+                                    <i class="fas fa-headset me-2"></i>¿Necesitas Ayuda?
+                                </h6>
+                                <p class="mb-0 text-muted">Nuestro equipo está aquí para ayudarte a maximizar tus ganancias.</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-info">
+                                    <i class="fas fa-envelope me-1"></i>Contactar Soporte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto redirect after 30 seconds
+        setTimeout(() => {
+            if (confirm('¿Te gustaría ir directamente a configurar tus APIs ahora?')) {
+                window.location.href = "{{ url_for('settings') }}";
+            } else {
+                window.location.href = "{{ url_for('index') }}";
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

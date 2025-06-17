@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Trading Bot - Dashboard</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dark-theme-fixes.css') }}" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2"></i>Crypto Trading Bot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analytics_page') }}">
+                            <i class="fas fa-chart-line me-1"></i>Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('settings_page') }}">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/subscription">
+                            <i class="fas fa-crown me-1"></i>Plans
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-shield-alt me-1"></i>Admin
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text">
+                            <i class="fas fa-circle text-success me-1" id="statusIndicator"></i>
+                            <span id="statusText">Connected</span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Alert Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main Stats Row -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-success fw-bold text-xs mb-1">Total Balance</div>
+                                <div class="text-light fw-bold h4 mb-0" id="totalBalance" style="font-size: 2rem; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                    ${{ "%.2f"|format(total_balance) if total_balance else "0.00" }}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-wallet fa-2x text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-info">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-info fw-bold text-xs mb-1">Daily P/L</div>
+                                <div class="text-light fw-bold h4 mb-0" id="dailyPL" style="font-size: 2rem; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                    {% if today_stats %}
+                                        ${{ "%.2f"|format(today_stats.total_profit) }}
+                                    {% else %}
+                                        $0.00
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-chart-line fa-2x text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-warning fw-bold text-xs mb-1">Today's Trades</div>
+                                <div class="text-light fw-bold h4 mb-0" id="todayTrades" style="font-size: 2rem; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                    {% if today_stats %}{{ today_stats.total_trades }}{% else %}0{% endif %}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exchange-alt fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-secondary">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="text-uppercase text-secondary fw-bold text-xs mb-1">Success Rate</div>
+                                <div class="text-light fw-bold h4 mb-0" id="successRate" style="font-size: 2rem; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                                    {% if today_stats and today_stats.total_trades > 0 %}
+                                        {{ "%.1f"|format((today_stats.successful_trades / today_stats.total_trades) * 100) }}%
+                                    {% else %}
+                                        0.0%
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-target fa-2x text-secondary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Recent Trades -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 fw-bold">Recent Trades</h6>
+                        <div>
+                            <button class="btn btn-sm btn-success me-2" onclick="scanArbitrage()" id="scanBtn">
+                                <i class="fas fa-search"></i> Scan Now
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="refreshTrades()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Symbol</th>
+                                        <th>Side</th>
+                                        <th>Amount</th>
+                                        <th>Price</th>
+                                        <th>P/L</th>
+                                        <th>Strategy</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tradesTableBody">
+                                    {% for trade in recent_trades %}
+                                    <tr>
+                                        <td>{{ trade.executed_at.strftime('%H:%M:%S') }}</td>
+                                        <td><code>{{ trade.symbol }}</code></td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if trade.side == 'BUY' else 'danger' }}">
+                                                {{ trade.side }}
+                                            </span>
+                                        </td>
+                                        <td class="text-light">${{ "%.2f"|format(trade.total_value) }}</td>
+                                        <td class="text-light">{{ "%.6f"|format(trade.price) }}</td>
+                                        <td class="text-{{ 'success' if trade.profit_loss and trade.profit_loss > 0 else 'danger' if trade.profit_loss else 'muted' }}">
+                                            {% if trade.profit_loss %}
+                                                ${{ "%.2f"|format(trade.profit_loss) }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ trade.strategy }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts & Opportunities -->
+            <div class="col-lg-4">
+                <!-- System Alerts -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 fw-bold">System Alerts</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="markAlertsRead()">
+                            Mark All Read
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="alertsContainer">
+                            {% for alert in recent_alerts %}
+                            <div class="alert alert-{{ alert.alert_type.lower() }} alert-sm">
+                                <strong>{{ alert.title }}</strong><br>
+                                <small>{{ alert.message }}</small>
+                                <div class="text-muted small">{{ alert.created_at.strftime('%H:%M:%S') }}</div>
+                            </div>
+                            {% endfor %}
+                            {% if not recent_alerts %}
+                            <div class="text-muted text-center">No new alerts</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balance Breakdown -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Balance Breakdown</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="balanceBreakdown">
+                            {% for balance in balances %}
+                                {% if balance.total_balance > 0 %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>{{ balance.asset }}</strong>
+                                        <div class="text-muted small">{{ "%.6f"|format(balance.total_balance) }}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div>${{ "%.2f"|format(balance.usd_value) }}</div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arbitrage Opportunities -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 fw-bold">Current Arbitrage Opportunities</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Buy Price</th>
+                                        <th>Sell Price</th>
+                                        <th>Spread</th>
+                                        <th>Potential Profit</th>
+                                        <th>Status</th>
+                                        <th>Detected</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="opportunitiesTableBody">
+                                    {% for opp in recent_opportunities %}
+                                    <tr>
+                                        <td><code>{{ opp.symbol }}</code></td>
+                                        <td>{{ "%.6f"|format(opp.buy_price) }}</td>
+                                        <td>{{ "%.6f"|format(opp.sell_price) }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ "%.2f"|format(opp.spread_percentage * 100) }}%</span>
+                                        </td>
+                                        <td class="text-success">${{ "%.2f"|format(opp.potential_profit) }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'warning' if opp.status == 'DETECTED' else 'success' if opp.status == 'EXECUTED' else 'secondary' }}">
+                                                {{ opp.status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ opp.detected_at.strftime('%H:%M:%S') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            {% if not recent_opportunities %}
+                            <div class="text-muted text-center py-3">No opportunities detected</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/fast-dashboard.js') }}"></script>
+    
+    <script>
+        // Sistema de notificaciones optimizado
+        class NotificationManager {
+            constructor() {
+                this.notifications = [];
+                this.lastCheck = Date.now();
+                this.init();
+            }
+
+            init() {
+                this.createNotificationArea();
+                this.startPolling();
+            }
+
+            createNotificationArea() {
+                const area = document.createElement('div');
+                area.id = 'notification-area';
+                area.style.cssText = 'position: fixed; top: 80px; right: 20px; z-index: 9999; max-width: 400px;';
+                document.body.appendChild(area);
+            }
+
+            async checkNotifications() {
+                try {
+                    const response = await fetch('/api/v2/notifications?user_id=1&limit=5');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.processNotifications(data.notifications);
+                        this.updateNotificationBadge(data.stats.unread_alerts);
+                    }
+                } catch (error) {
+                    console.log('Notification check failed:', error);
+                }
+            }
+
+            processNotifications(newNotifications) {
+                newNotifications.forEach(notification => {
+                    if (!notification.is_read && !this.notifications.find(n => n.id === notification.id)) {
+                        this.showNotification(notification);
+                        this.notifications.push(notification);
+                    }
+                });
+            }
+
+            showNotification(notification) {
+                const alertClass = this.getAlertClass(notification.type);
+                const notifElement = document.createElement('div');
+                notifElement.className = `alert ${alertClass} alert-dismissible fade show mb-2 shadow`;
+                notifElement.innerHTML = `
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-${this.getIcon(notification.type)} me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>${notification.title}</strong>
+                            <div class="small">${notification.message}</div>
+                            <div class="text-muted small">${this.formatTime(notification.created_at)}</div>
+                        </div>
+                        <button type="button" class="btn-close" onclick="notificationManager.dismissNotification(${notification.id}, this)"></button>
+                    </div>
+                `;
+                
+                document.getElementById('notification-area').appendChild(notifElement);
+                
+                // Auto dismiss after 8 seconds
+                setTimeout(() => {
+                    if (notifElement.parentNode) {
+                        this.dismissNotification(notification.id, notifElement.querySelector('.btn-close'));
+                    }
+                }, 8000);
+            }
+
+            getAlertClass(type) {
+                const classes = {
+                    'SUCCESS': 'alert-success',
+                    'ERROR': 'alert-danger',
+                    'WARNING': 'alert-warning',
+                    'INFO': 'alert-info'
+                };
+                return classes[type] || 'alert-info';
+            }
+
+            getIcon(type) {
+                const icons = {
+                    'SUCCESS': 'check-circle',
+                    'ERROR': 'exclamation-triangle',
+                    'WARNING': 'exclamation-circle',
+                    'INFO': 'info-circle'
+                };
+                return icons[type] || 'bell';
+            }
+
+            formatTime(timestamp) {
+                if (!timestamp) return 'Ahora';
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            async dismissNotification(notificationId, element) {
+                try {
+                    await fetch('/api/v2/notifications/mark-read', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({user_id: '1', notification_ids: [notificationId]})
+                    });
+                    
+                    element.closest('.alert').remove();
+                    this.notifications = this.notifications.filter(n => n.id !== notificationId);
+                } catch (error) {
+                    element.closest('.alert').remove();
+                }
+            }
+
+            updateNotificationBadge(count) {
+                const badge = document.querySelector('.notification-badge');
+                if (badge) {
+                    badge.textContent = count;
+                    badge.style.display = count > 0 ? 'inline' : 'none';
+                }
+            }
+
+            startPolling() {
+                this.checkNotifications();
+                setInterval(() => this.checkNotifications(), 15000); // Check every 15 seconds
+            }
+        }
+
+        // Sistema de actualización de dashboard optimizado
+        class DashboardUpdater {
+            constructor() {
+                this.lastUpdate = Date.now();
+                this.updateInterval = 30000; // 30 seconds
+                this.healthCheckInterval = 60000; // 1 minute
+                this.init();
+            }
+
+            init() {
+                this.startUpdates();
+                this.startHealthCheck();
+            }
+
+            async updateDashboardData() {
+                try {
+                    const response = await fetch('/api/v2/dashboard');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.updateMetrics(data.data);
+                    }
+                } catch (error) {
+                    console.log('Dashboard update failed:', error);
+                }
+            }
+
+            updateMetrics(data) {
+                if (data.trading) {
+                    this.updateElement('.total-trades', data.trading.total_trades);
+                    this.updateElement('.total-profit', `$${data.trading.total_profit.toFixed(2)}`);
+                    this.updateElement('.current-balance', `$${data.trading.balance_usd.toFixed(2)}`);
+                    this.updateElement('.success-rate', `${data.trading.success_rate.toFixed(1)}%`);
+                }
+                
+                if (data.alerts) {
+                    this.updateElement('.unread-alerts', data.alerts.unread_count);
+                }
+            }
+
+            updateElement(selector, value) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    element.textContent = value;
+                }
+            }
+
+            async checkSystemHealth() {
+                try {
+                    const response = await fetch('/api/v2/system/health');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.updateHealthIndicator(data.health_score, data.status);
+                    }
+                } catch (error) {
+                    this.updateHealthIndicator(0, 'error');
+                }
+            }
+
+            updateHealthIndicator(score, status) {
+                const indicator = document.getElementById('statusIndicator');
+                const text = document.getElementById('statusText');
+                
+                if (indicator && text) {
+                    const colorClass = score > 80 ? 'text-success' : score > 60 ? 'text-warning' : 'text-danger';
+                    indicator.className = `fas fa-circle ${colorClass} me-1`;
+                    text.textContent = `Sistema: ${score}%`;
+                }
+            }
+
+            startUpdates() {
+                this.updateDashboardData();
+                setInterval(() => this.updateDashboardData(), this.updateInterval);
+            }
+
+            startHealthCheck() {
+                this.checkSystemHealth();
+                setInterval(() => this.checkSystemHealth(), this.healthCheckInterval);
+            }
+        }
+
+        // Inicializar sistemas
+        let notificationManager;
+        let dashboardUpdater;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            notificationManager = new NotificationManager();
+            dashboardUpdater = new DashboardUpdater();
+            
+            // Agregar badge de notificaciones al navbar
+            const statusText = document.getElementById('statusText');
+            if (statusText) {
+                statusText.innerHTML += ' <span class="badge bg-danger notification-badge" style="display: none;">0</span>';
+            }
+        });
+    </script>
+</body>
+</html>

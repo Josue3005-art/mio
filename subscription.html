@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suscripciones - Crypto Trading Bot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .plan-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .plan-card.popular {
+            border-color: #ffc107;
+            position: relative;
+        }
+        .popular-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: linear-gradient(45deg, #ffc107, #ffeb3b);
+            color: #000;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .price-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .price-currency {
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
+        .feature-list {
+            min-height: 200px;
+        }
+        .feature-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+        .payment-methods {
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .method-icon {
+            width: 60px;
+            height: 40px;
+            object-fit: contain;
+            filter: brightness(0.8);
+            transition: filter 0.2s;
+        }
+        .method-icon:hover {
+            filter: brightness(1.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2"></i>Crypto Trading Bot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-chart-line me-1"></i>Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('subscription') }}">
+                            <i class="fas fa-credit-card me-1"></i>Suscripciones
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    Planes de Suscripción
+                </h2>
+                <p class="text-center text-muted">
+                    Elige el plan perfecto para tu estrategia de trading. Todos los planes incluyen trading real con tus APIs.
+                </p>
+            </div>
+        </div>
+
+        <!-- Current Plan Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-dark border-info">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="text-info mb-1">
+                                    <i class="fas fa-user-circle me-2"></i>Estado Actual
+                                </h5>
+                                <p class="mb-0" id="currentPlanStatus">
+                                    Plan: <span class="badge bg-secondary">FREE</span> | 
+                                    Estado: <span class="badge bg-warning">Limitado</span>
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-info" onclick="checkSubscriptionStatus()">
+                                    <i class="fas fa-sync me-1"></i>Verificar Estado
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Plans -->
+        <div class="row mb-5" id="pricingPlans">
+            <!-- Plans will be loaded here -->
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="payment-methods">
+            <h4 class="text-center text-white mb-4">
+                <i class="fas fa-credit-card me-2"></i>Métodos de Pago Aceptados
+            </h4>
+            <div class="row text-center">
+                <div class="col-md-3 mb-3">
+                    <div class="p-3">
+                        <i class="fab fa-cc-visa fa-3x text-primary mb-2"></i>
+                        <p class="text-muted small">Tarjetas de Crédito</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="p-3">
+                        <i class="fas fa-mobile-alt fa-3x text-success mb-2"></i>
+                        <p class="text-muted small">Zinli (Venezuela)</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="p-3">
+                        <i class="fab fa-bitcoin fa-3x text-warning mb-2"></i>
+                        <p class="text-muted small">Criptomonedas</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="p-3">
+                        <i class="fas fa-university fa-3x text-info mb-2"></i>
+                        <p class="text-muted small">Transferencias</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trading Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-dark border-success">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-robot me-2"></i>Estado del Trading
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Modo Actual:</strong> <span id="tradingMode" class="badge bg-info">DEMO</span></p>
+                                <p><strong>Exchanges Configurados:</strong> <span id="exchangesCount" class="badge bg-secondary">0</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Trading Activo:</strong> <span id="tradingStatus" class="badge bg-warning">Detenido</span></p>
+                                <p><strong>Último Escaneo:</strong> <span id="lastScan" class="text-muted">-</span></p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-success me-2" onclick="startTrading()" id="startTradingBtn">
+                                <i class="fas fa-play me-1"></i>Iniciar Trading
+                            </button>
+                            <button class="btn btn-danger me-2" onclick="stopTrading()" id="stopTradingBtn">
+                                <i class="fas fa-stop me-1"></i>Detener Trading
+                            </button>
+                            <button class="btn btn-info" onclick="refreshTradingStatus()">
+                                <i class="fas fa-sync me-1"></i>Actualizar Estado
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-question-circle me-2"></i>Preguntas Frecuentes
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion accordion-dark" id="faqAccordion">
+                            <div class="accordion-item bg-dark">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button bg-dark text-white collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                        ¿Cómo funciona el trading real?
+                                    </button>
+                                </h2>
+                                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        El trading real utiliza tus propias API keys de Binance o KuCoin para ejecutar operaciones con tu capital. 
+                                        Solo necesitas configurar las APIs en Settings y activar el modo REAL.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item bg-dark">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button bg-dark text-white collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                        ¿Es seguro conectar mis APIs?
+                                    </button>
+                                </h2>
+                                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Sí, tus API keys se almacenan de forma segura y encriptada. Recomendamos crear APIs con permisos de trading 
+                                        pero SIN permisos de retiro para máxima seguridad.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item bg-dark">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button bg-dark text-white collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                        ¿Puedo cambiar de plan en cualquier momento?
+                                    </button>
+                                </h2>
+                                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Sí, puedes cambiar tu plan en cualquier momento. Los cambios se aplican inmediatamente y se prorratea el costo.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-credit-card me-2"></i>Procesando Pago
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p>Generando enlace de pago seguro...</p>
+                    <p class="text-muted small">Serás redirigido a la plataforma de pago en unos segundos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let currentPlans = {};
+        let tradingStatusInterval;
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPaymentPlans();
+            checkSubscriptionStatus();
+            refreshTradingStatus();
+            
+            // Actualizar estado cada 30 segundos
+            tradingStatusInterval = setInterval(refreshTradingStatus, 30000);
+        });
+
+        // Cargar planes de pago
+        function loadPaymentPlans() {
+            fetch('/api/payment/plans')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentPlans = data.plans;
+                        renderPricingPlans(data.plans);
+                    } else {
+                        showNotification('Error cargando planes: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error de conexión: ' + error.message, 'error');
+                });
+        }
+
+        // Renderizar planes de precios
+        function renderPricingPlans(plans) {
+            const container = document.getElementById('pricingPlans');
+            let html = '';
+
+            Object.keys(plans).forEach(planKey => {
+                const plan = plans[planKey];
+                const isPopular = plan.popular;
+
+                html += `
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card plan-card h-100 bg-dark ${isPopular ? 'popular' : ''}">
+                            ${isPopular ? '<div class="popular-badge">MÁS POPULAR</div>' : ''}
+                            <div class="card-header text-center bg-transparent">
+                                <h4 class="text-white">${plan.name}</h4>
+                                <div class="price-display">$${plan.price_usd}</div>
+                                <span class="price-currency">USD/mes</span>
+                            </div>
+                            <div class="card-body d-flex flex-column">
+                                <div class="feature-list flex-grow-1">
+                                    ${plan.features.map(feature => 
+                                        `<div class="feature-item">
+                                            <i class="fas fa-check text-success me-2"></i>${feature}
+                                        </div>`
+                                    ).join('')}
+                                </div>
+                                <div class="mt-4">
+                                    <button class="btn ${isPopular ? 'btn-warning' : 'btn-outline-primary'} w-100" 
+                                            onclick="selectPlan('${planKey}')">
+                                        <i class="fas fa-shopping-cart me-2"></i>
+                                        Seleccionar Plan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Seleccionar plan de pago
+        function selectPlan(planKey) {
+            const plan = currentPlans[planKey];
+            if (!plan) return;
+
+            if (confirm(`¿Confirmas la suscripción al ${plan.name} por $${plan.price_usd} USD/mes?`)) {
+                processPayment(planKey);
+            }
+        }
+
+        // Procesar pago
+        function processPayment(planType) {
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+
+            fetch('/api/payment/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    plan_type: planType,
+                    user_id: '1'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                modal.hide();
+                
+                if (data.success) {
+                    // Redirigir a la URL de pago
+                    showNotification('Redirigiendo a la plataforma de pago...', 'success');
+                    setTimeout(() => {
+                        window.open(data.payment_url, '_blank');
+                    }, 1500);
+                } else {
+                    showNotification('Error procesando pago: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                modal.hide();
+                showNotification('Error de conexión: ' + error.message, 'error');
+            });
+        }
+
+        // Verificar estado de suscripción
+        function checkSubscriptionStatus() {
+            // En modo demo, mostrar estado FREE
+            document.getElementById('currentPlanStatus').innerHTML = `
+                Plan: <span class="badge bg-secondary">FREE</span> | 
+                Estado: <span class="badge bg-warning">Demo</span> | 
+                <span class="text-muted">Configura APIs para trading real</span>
+            `;
+        }
+
+        // Actualizar estado del trading
+        function refreshTradingStatus() {
+            Promise.all([
+                fetch('/api/get_trading_config'),
+                fetch('/api/trading_status')
+            ])
+            .then(responses => Promise.all(responses.map(r => r.json())))
+            .then(([configData, statusData]) => {
+                if (configData.success) {
+                    document.getElementById('tradingMode').textContent = configData.mode.toUpperCase();
+                    document.getElementById('tradingMode').className = `badge ${configData.mode === 'real' ? 'bg-danger' : 'bg-info'}`;
+                    
+                    const exchangeCount = Object.values(configData.exchanges_configured).filter(Boolean).length;
+                    document.getElementById('exchangesCount').textContent = exchangeCount;
+                }
+
+                if (statusData.success) {
+                    const isRunning = statusData.status.is_running;
+                    document.getElementById('tradingStatus').textContent = isRunning ? 'Activo' : 'Detenido';
+                    document.getElementById('tradingStatus').className = `badge ${isRunning ? 'bg-success' : 'bg-warning'}`;
+                    
+                    if (statusData.status.last_scan) {
+                        const lastScan = new Date(statusData.status.last_scan).toLocaleString();
+                        document.getElementById('lastScan').textContent = lastScan;
+                    }
+
+                    // Actualizar botones
+                    document.getElementById('startTradingBtn').disabled = isRunning;
+                    document.getElementById('stopTradingBtn').disabled = !isRunning;
+                }
+            })
+            .catch(error => {
+                console.log('Error actualizando estado:', error);
+            });
+        }
+
+        // Iniciar trading
+        function startTrading() {
+            fetch('/api/start_real_trading', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(refreshTradingStatus, 1000);
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error de conexión: ' + error.message, 'error');
+            });
+        }
+
+        // Detener trading
+        function stopTrading() {
+            if (confirm('¿Estás seguro de detener el trading automático?')) {
+                fetch('/api/stop_real_trading', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        setTimeout(refreshTradingStatus, 1000);
+                    } else {
+                        showNotification('Error: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error de conexión: ' + error.message, 'error');
+                });
+            }
+        }
+
+        // Mostrar notificaciones
+        function showNotification(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'error' ? 'alert-danger' : 'alert-info';
+            
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 350px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
+                    <div class="flex-grow-1">
+                        <strong>${type === 'success' ? 'Éxito' : type === 'error' ? 'Error' : 'Info'}:</strong><br>
+                        <small>${message}</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        function getNotificationIcon(type) {
+            const icons = {
+                'success': 'check-circle',
+                'error': 'exclamation-triangle',
+                'info': 'info-circle'
+            };
+            return icons[type] || 'bell';
+        }
+
+        // Limpiar intervalos al salir
+        window.addEventListener('beforeunload', function() {
+            if (tradingStatusInterval) {
+                clearInterval(tradingStatusInterval);
+            }
+        });
+    </script>
+</body>
+</html>
